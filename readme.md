@@ -1,3 +1,5 @@
+# This fork just adds iq exporter to mac builds and removes all sdr sources except for the hackrf and rtlsdr. You will need to xattr -cr the release file to make it run.
+
 # SDR++, The bloat-free SDR software<br>
 
 ![Screenshot](https://i.imgur.com/Ter2MQJ.png)
