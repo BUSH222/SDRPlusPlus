@@ -18,8 +18,8 @@
 SDRPP_MOD_INFO{
     /* Name:            */ "better_usrp_source",
     /* Description:     */ "Better USRP source module for SDR++",
-    /* Author:          */ "Ryzerth",
-    /* Version:         */ 0, 1, 0,
+    /* Author:          */ "BUSH22",  // Lightly modified from Ryzerth's usrp_source module with SatDump's USRP support code
+    /* Version:         */ 1, 0, 0,
     /* Max instances    */ 1
 };
 
@@ -31,6 +31,9 @@ public:
         this->name = name;
 
         sampleRate = 8000000.0;
+
+        bitDepths.define(8, "8-bit", 8);
+        bitDepths.define(16, "16-bit", 16);
 
         handler.ctx = this;
         handler.selectHandler = menuSelected;
@@ -211,6 +214,7 @@ public:
         antId = 0;
         bwId = 0;
         csId = 0;
+        bdId = 1;
         gain = gainRange.start();
         config.acquire();
         if (config.conf["devices"][selectedSer].contains("channels") && config.conf["devices"][selectedSer]["channels"].contains(selectedChan)) {
@@ -230,6 +234,10 @@ public:
             if (cconf.contains("clock")) {
                 std::string clk = cconf["clock"];
                 if (clockSources.keyExists(clk)) { csId = clockSources.keyId(clk); }
+            }
+            if (cconf.contains("bit_depth")) {
+                int bd = cconf["bit_depth"];
+                if (bitDepths.keyExists(bd)) { bdId = bitDepths.keyId(bd); }
             }
             if (cconf.contains("gain")) {
                 gain = cconf["gain"];
@@ -314,7 +322,11 @@ private:
         sargs.channels.clear();
         sargs.channels.push_back(_this->chanId);
         sargs.cpu_format = "fc32";
-        sargs.otw_format = "sc16";
+        if (_this->bitDepths.key(_this->bdId) == 8) {
+            sargs.otw_format = "sc8";
+        } else {
+            sargs.otw_format = "sc16";
+        }
         _this->streamer = _this->dev->get_rx_stream(sargs);
         _this->streamer->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
         
@@ -447,6 +459,18 @@ private:
             }
         }
 
+        if (_this->running) { SmGui::BeginDisabled(); }
+        SmGui::LeftLabel("Bit Depth");
+        SmGui::FillWidth();
+        if (SmGui::Combo(CONCAT("##_usrp_bd_sel_", _this->name), &_this->bdId, _this->bitDepths.txt)) {
+            if (!_this->selectedSer.empty() && !_this->selectedChan.empty()) {
+                config.acquire();
+                config.conf["devices"][_this->selectedSer]["channels"][_this->selectedChan]["bit_depth"] = _this->bitDepths.key(_this->bdId);
+                config.release(true);
+            }
+        }
+        if (_this->running) { SmGui::EndDisabled(); }
+
         SmGui::LeftLabel("Gain");
         SmGui::FillWidth();
         if (SmGui::SliderFloatWithSteps(CONCAT("##_usrp_gain_", _this->name), &_this->gain, _this->gainRange.start(), _this->gainRange.stop(), _this->gainRange.step(), SmGui::FMT_STR_FLOAT_DB_ONE_DECIMAL)) {
@@ -506,6 +530,7 @@ private:
     int antId = 0;
     int bwId = 0;
     int csId = 0;
+    int bdId = 1;
     std::string selectedSer = "";
     std::string selectedChan = "";
     float gain = 0.0f;
@@ -516,6 +541,7 @@ private:
     OptionList<std::string, std::string> antennas;
     OptionList<int, double> bandwidths;
     OptionList<std::string, std::string> clockSources;
+    OptionList<int, int> bitDepths;
     uhd::range_t gainRange;
 
     bool useDeviceRates = false;
