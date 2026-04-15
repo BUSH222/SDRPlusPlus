@@ -504,8 +504,8 @@ private:
                 uhd::rx_streamer::buffs_type buffers(ptr, 1);
                 int len = streamer->recv(stream.writeBuf, bufferSize, meta, 1.0);
                 if (len < 0) { break; }
-                if (len != bufferSize) {
-                    printf("%d\n", len);
+                if (meta.error_code != meta.ERROR_CODE_NONE) {
+                    flog::warn("USRP Stream error: likely overflow: {}", meta.strerror());
                 }
                 if (len) {
                     if (!stream.swap(len)) { break; }
