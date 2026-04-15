@@ -14,7 +14,6 @@ option(OPT_BUILD_AIRSPYHF_SOURCE "Build Airspy HF+ Source Module (Dependencies: 
 option(OPT_BUILD_AUDIO_SOURCE "Build Audio Source Module (Dependencies: rtaudio)" ON)
 option(OPT_BUILD_BADGESDR_SOURCE "Build BadgeSDR Source Module (Dependencies: libusb)" OFF)
 option(OPT_BUILD_BLADERF_SOURCE "Build BladeRF Source Module (Dependencies: libbladeRF)" OFF)
-option(OPT_BUILD_CS8_FILE_SOURCE "CS8 file source" ON)
 option(OPT_BUILD_FILE_SOURCE "Wav file source" ON)
 option(OPT_BUILD_FOBOSSDR_SOURCE "Build FobosSDR Source Module (Dependencies: libfobos)" OFF)
 option(OPT_BUILD_HACKRF_SOURCE "Build HackRF Source Module (Dependencies: libhackrf)" ON)
@@ -37,7 +36,6 @@ option(OPT_BUILD_SPECTRAN_SOURCE "Build Spectran Source Module (Dependencies: Aa
 option(OPT_BUILD_SPECTRAN_HTTP_SOURCE "Build Spectran HTTP Source Module (no dependencies required)" ON)
 option(OPT_BUILD_SPYSERVER_SOURCE "Build SpyServer Source Module (no dependencies required)" OFF)
 option(OPT_BUILD_USRP_SOURCE "Build USRP Source Module (libuhd)" OFF)
-option(OPT_BUILD_BETTER_USRP_SOURCE "Build Better USRP Source Module (libuhd)" OFF)
 
 # Sinks
 option(OPT_BUILD_ANDROID_AUDIO_SINK "Build Android Audio Sink Module (Dependencies: AAudio, only for android)" OFF)
@@ -145,10 +143,6 @@ if (OPT_BUILD_BLADERF_SOURCE)
 add_subdirectory("source_modules/bladerf_source")
 endif (OPT_BUILD_BLADERF_SOURCE)
 
-if (OPT_BUILD_CS8_FILE_SOURCE)
-add_subdirectory("source_modules/cs8_file_source")
-endif (OPT_BUILD_CS8_FILE_SOURCE)
-
 if (OPT_BUILD_FILE_SOURCE)
 add_subdirectory("source_modules/file_source")
 endif (OPT_BUILD_FILE_SOURCE)
@@ -236,10 +230,6 @@ endif (OPT_BUILD_SPECTRAN_HTTP_SOURCE)
 if (OPT_BUILD_SPYSERVER_SOURCE)
 add_subdirectory("source_modules/spyserver_source")
 endif (OPT_BUILD_SPYSERVER_SOURCE)
-
-if (OPT_BUILD_BETTER_USRP_SOURCE)
-add_subdirectory("source_modules/better_usrp_source")
-endif (OPT_BUILD_BETTER_USRP_SOURCE)
 
 if (OPT_BUILD_USRP_SOURCE)
 add_subdirectory("source_modules/usrp_source")
