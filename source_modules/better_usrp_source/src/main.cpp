@@ -104,8 +104,16 @@ public:
         selectedSer = serial;
         devId = devices.keyId(serial);
 
+        uhd::device_addr_t addr = devices[devId];
+        addr["recv_frame_size"] = "8000";
+#ifdef __APPLE__
+        addr["num_recv_frames"] = "1024";
+#else
+        addr["num_recv_frames"] = "1900";
+#endif
+
         // Make device
-        auto dev = uhd::usrp::multi_usrp::make(devices[devId]);
+        auto dev = uhd::usrp::multi_usrp::make(addr);
 
         // List subdevices
         char buf[1024];
@@ -140,11 +148,31 @@ public:
 
         // List samplerates
         samplerates.clear();
-        auto srList = dev->get_rx_rates(chanId);
-        for (const auto& l : srList) {
-            double step = (l.step() == 0.0) ? 100e3 : l.step();
-            for (double f = l.start(); f <= l.stop(); f += step) {
-                samplerates.define(f, utils::formatFreq(f), f);
+        uhd::meta_range_t master_clock_range = dev->get_master_clock_rate_range(chanId);
+        useDeviceRates = (master_clock_range.start() != master_clock_range.stop());
+        
+        if (useDeviceRates) {
+            for (auto& sr : master_clock_range) {
+                if (sr.step() == 0 && sr.start() == sr.stop()) {
+                    samplerates.define(sr.start(), utils::formatFreq(sr.start()), sr.start());
+                } else if (sr.step() == 0) {
+                    for (double s = std::max(sr.start(), 1e6); s < sr.stop(); s += 1e6) {
+                        samplerates.define(s, utils::formatFreq(s), s);
+                    }
+                    samplerates.define(sr.stop(), utils::formatFreq(sr.stop()), sr.stop());
+                } else {
+                    for (double s = sr.start(); s <= sr.stop(); s += sr.step()) {
+                        samplerates.define(s, utils::formatFreq(s), s);
+                    }
+                }
+            }
+        } else {
+            auto srList = dev->get_rx_rates(chanId);
+            for (const auto& l : srList) {
+                double step = (l.step() == 0.0) ? 100e3 : l.step();
+                for (double f = l.start(); f <= l.stop(); f += step) {
+                    samplerates.define(f, utils::formatFreq(f), f);
+                }
             }
         }
 
@@ -263,8 +291,18 @@ private:
         if (_this->running) { return; }
         if (_this->selectedSer.empty()) { return; }
 
-        _this->dev = uhd::usrp::multi_usrp::make(_this->devices[_this->devId]);
+        uhd::device_addr_t addr = _this->devices[_this->devId];
+        addr["recv_frame_size"] = "8000";
+#ifdef __APPLE__
+        addr["num_recv_frames"] = "1024";
+#else
+        addr["num_recv_frames"] = "1900";
+#endif
+        _this->dev = uhd::usrp::multi_usrp::make(addr);
 
+        if (_this->useDeviceRates) {
+            _this->dev->set_master_clock_rate(_this->sampleRate);
+        }
         _this->dev->set_rx_rate(_this->sampleRate, _this->chanId);
         _this->dev->set_rx_antenna(_this->antennas.key(_this->antId), _this->chanId);
         _this->dev->set_rx_gain(_this->gain, _this->chanId);
@@ -433,8 +471,8 @@ private:
     }
 
     void worker() {
-        // TODO: Select a better buffer size that will avoid bad timing
-        int bufferSize = sampleRate / 200;
+        // Match SatDump buffer calculation
+        int bufferSize = std::min<int>(sampleRate / 250, 131072);
         try {
             while (true) {
                 uhd::rx_metadata_t meta;
@@ -480,6 +518,7 @@ private:
     OptionList<std::string, std::string> clockSources;
     uhd::range_t gainRange;
 
+    bool useDeviceRates = false;
     uhd::usrp::multi_usrp::sptr dev;
     uhd::rx_streamer::sptr streamer;
 
